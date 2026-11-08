@@ -50,14 +50,7 @@ with st.sidebar:
         ],
     )
 
-    backend = st.selectbox(
-        "Inference backend",
-        [
-            "Lexical baseline (no API)",
-            "Gemini API",
-        ],
-    )
-
+    backend = "Gemini API"
     mode = st.radio(
         "Workflow",
         ["single", "multi"],

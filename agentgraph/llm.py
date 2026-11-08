@@ -7,13 +7,26 @@ class GeminiLLM:
 
     def __init__(self):
         self.api_key = os.getenv("GEMINI_API_KEY", "").strip()
+
+        # Support Streamlit Cloud secrets
+        if not self.api_key:
+            try:
+                import streamlit as st
+                self.api_key = st.secrets.get(
+                    "GEMINI_API_KEY", ""
+                ).strip()
+            except (ImportError, FileNotFoundError, KeyError):
+                pass
+
         self.model = os.getenv(
-            "GEMINI_MODEL", "gemini-2.5-flash"
+            "GEMINI_MODEL",
+            "gemini-3.6-flash"
         ).strip()
 
         if not self.api_key:
             raise ValueError(
-                "GEMINI_API_KEY is missing from the environment."
+                "GEMINI_API_KEY is missing. "
+                "Add it to Streamlit Cloud secrets."
             )
 
     def generate(self, system_prompt, user_prompt):
@@ -48,7 +61,6 @@ class GeminiLLM:
                 json=payload,
                 timeout=90,
             )
-
         except requests.RequestException:
             raise RuntimeError(
                 "Could not connect to the Gemini API."

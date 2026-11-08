@@ -3,52 +3,77 @@ import requests
 
 
 class GeminiLLM:
+    BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
+
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY", "")
+        self.api_key = os.getenv("GEMINI_API_KEY", "").strip()
         self.model = os.getenv(
-            "GEMINI_MODEL",
-            "gemini-2.5-flash",
-        )
+            "GEMINI_MODEL", "gemini-2.5-flash"
+        ).strip()
 
         if not self.api_key:
             raise ValueError(
-                "GEMINI_API_KEY is missing from .env"
+                "GEMINI_API_KEY is missing from the environment."
             )
 
     def generate(self, system_prompt, user_prompt):
         url = (
-            "https://generativelanguage.googleapis.com/"
-            f"v1beta/models/{self.model}:generateContent"
+            f"{self.BASE_URL}/models/"
+            f"{self.model}:generateContent"
         )
 
         payload = {
             "system_instruction": {
                 "parts": [{"text": system_prompt}]
             },
-            "contents": [{
-                "parts": [{"text": user_prompt}]
-            }],
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": user_prompt}],
+                }
+            ],
             "generationConfig": {
                 "temperature": 0,
-                "maxOutputTokens": 512,
+                "maxOutputTokens": 1024,
             },
         }
 
-        response = requests.post(
-            url,
-            params={"key": self.api_key},
-            json=payload,
-            timeout=90,
-        )
+        try:
+            response = requests.post(
+                url,
+                headers={
+                    "x-goog-api-key": self.api_key,
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=90,
+            )
 
-        response.raise_for_status()
+        except requests.RequestException:
+            raise RuntimeError(
+                "Could not connect to the Gemini API."
+            ) from None
 
-        data = response.json()
+        if not response.ok:
+            raise RuntimeError(
+                f"Gemini API request failed "
+                f"(HTTP {response.status_code}). "
+                "Check model availability, API access, and quota."
+            )
+
+        try:
+            data = response.json()
+        except ValueError:
+            raise RuntimeError(
+                "Gemini returned an invalid JSON response."
+            ) from None
+
         candidates = data.get("candidates", [])
 
         if not candidates:
             raise RuntimeError(
-                "Gemini returned no candidates."
+                "Gemini returned no candidates. "
+                "The response may have been blocked."
             )
 
         parts = candidates[0].get(

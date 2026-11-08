@@ -1,0 +1,50 @@
+[
+  {
+    "id": "demo-001",
+    "question": "Which university did the author of The Hobbit attend?",
+    "answer": "University of Oxford",
+    "context": [
+      {
+        "title": "The Hobbit",
+        "sentences": [
+          "The Hobbit was written by J. R. R. Tolkien.",
+          "It was published in 1937."
+        ]
+      },
+      {
+        "title": "J. R. R. Tolkien",
+        "sentences": [
+          "J. R. R. Tolkien attended the University of Oxford.",
+          "He was an English writer."
+        ]
+      }
+    ],
+    "supporting_facts": [
+      ["The Hobbit", 0],
+      ["J. R. R. Tolkien", 0]
+    ]
+  },
+  {
+    "id": "demo-002",
+    "question": "Where was the inventor of the World Wide Web born?",
+    "answer": "London",
+    "context": [
+      {
+        "title": "World Wide Web",
+        "sentences": [
+          "Tim Berners-Lee invented the World Wide Web."
+        ]
+      },
+      {
+        "title": "Tim Berners-Lee",
+        "sentences": [
+          "Tim Berners-Lee was born in London, England."
+        ]
+      }
+    ],
+    "supporting_facts": [
+      ["World Wide Web", 0],
+      ["Tim Berners-Lee", 0]
+    ]
+  }
+]

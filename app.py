@@ -155,11 +155,12 @@ def build_custom_example(question, context):
 # Tabs
 # -----------------------------
 
-tab1, tab2, tab3 = st.tabs(
+tab1, tab2, tab3, tab4 = st.tabs(
     [
         "Agent Playground",
         "Research Evaluation",
         "Architecture",
+        "Workflow Comparison",
     ]
 )
 
@@ -475,3 +476,155 @@ User Question + Supporting Evidence
   research-quality evaluation.
 """
     )
+# -----------------------------
+# Workflow Comparison
+# -----------------------------
+
+with tab4:
+    st.subheader("Single-Agent vs Multi-Agent Reliability")
+
+    st.write(
+        "Compare single-agent and multi-agent reasoning "
+        "using identical questions, retrieval settings, "
+        "and evaluation metrics."
+    )
+
+    st.caption(
+        "Comparison measures answer accuracy, evidence retrieval "
+        "quality, and inference latency."
+    )
+
+    comparison_limit = st.slider(
+        "Comparison examples",
+        min_value=1,
+        max_value=min(10, len(examples)) if examples else 1,
+        value=min(3, len(examples)) if examples else 1,
+        key="comparison_limit",
+    )
+
+    if st.button("Run Workflow Comparison", type="primary"):
+
+        if not examples:
+            st.warning("No dataset examples are available.")
+
+        else:
+            try:
+                subset = examples[:comparison_limit]
+
+                with st.spinner("Evaluating single-agent workflow..."):
+                    single_results = evaluate(
+                        subset,
+                        mode="single",
+                        llm=llm,
+                        top_k=top_k,
+                    )
+
+                with st.spinner("Evaluating multi-agent workflow..."):
+                    multi_results = evaluate(
+                        subset,
+                        mode="multi",
+                        llm=llm,
+                        top_k=top_k,
+                    )
+
+                single_results = single_results.copy()
+                multi_results = multi_results.copy()
+
+                single_results["workflow"] = "Single-Agent"
+                multi_results["workflow"] = "Multi-Agent"
+
+                combined = pd.concat(
+                    [single_results, multi_results],
+                    ignore_index=True,
+                )
+
+                metrics = [
+                    "exact_match",
+                    "answer_f1",
+                    "evidence_f1",
+                    "latency_seconds",
+                ]
+
+                summary = (
+                    combined.groupby("workflow")[metrics]
+                    .mean()
+                    .reset_index()
+                )
+
+                st.subheader("Performance Summary")
+                st.dataframe(
+                    summary,
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+                single_avg = single_results[metrics].mean()
+                multi_avg = multi_results[metrics].mean()
+
+                col1, col2, col3 = st.columns(3)
+
+                col1.metric(
+                    "Answer F1 Difference",
+                    f"{multi_avg['answer_f1'] - single_avg['answer_f1']:+.3f}",
+                )
+
+                col2.metric(
+                    "Exact Match Difference",
+                    f"{multi_avg['exact_match'] - single_avg['exact_match']:+.3f}",
+                )
+
+                col3.metric(
+                    "Latency Difference",
+                    f"{multi_avg['latency_seconds'] - single_avg['latency_seconds']:+.2f}s",
+                )
+
+                st.subheader("Accuracy Comparison")
+
+                chart_data = summary.melt(
+                    id_vars="workflow",
+                    value_vars=[
+                        "exact_match",
+                        "answer_f1",
+                        "evidence_f1",
+                    ],
+                    var_name="metric",
+                    value_name="score",
+                )
+
+                fig = px.bar(
+                    chart_data,
+                    x="metric",
+                    y="score",
+                    color="workflow",
+                    barmode="group",
+                    title="Single-Agent vs Multi-Agent Performance",
+                )
+
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True,
+                )
+
+                st.subheader("Detailed Evaluation Results")
+
+                st.dataframe(
+                    combined,
+                    use_container_width=True,
+                )
+
+                st.download_button(
+                    "Download Comparison CSV",
+                    data=combined.to_csv(index=False),
+                    file_name="agentgraph_comparison.csv",
+                    mime="text/csv",
+                )
+
+                st.info(
+                    "Evidence F1 measures retrieval quality, "
+                    "not claim verification accuracy. "
+                    "Use official HotpotQA validation data "
+                    "for benchmark reporting."
+                )
+
+            except Exception as error:
+                st.error(f"Comparison failed: {error}")
